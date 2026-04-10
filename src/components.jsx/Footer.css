@@ -1,0 +1,82 @@
+.footer {
+  background: var(--navy);
+  color: var(--white);
+}
+
+.footer-top {
+  display: flex;
+  gap: 3rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 2rem 2rem;
+}
+
+.footer-brand {
+  flex: 0 0 160px;
+}
+
+.footer-logo {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 0.75rem;
+}
+
+.footer-slogan {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.footer-links {
+  display: flex;
+  flex: 1;
+  gap: 2rem;
+  justify-content: space-between;
+}
+
+.footer-col h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--teal);
+}
+
+.footer-col ul li {
+  margin-bottom: 0.4rem;
+}
+
+.footer-col ul li a {
+  font-size: 0.88rem;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+
+.footer-col ul li a:hover {
+  opacity: 1;
+  color: var(--mint);
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  padding: 1.25rem 2rem;
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .footer-top {
+    flex-direction: column;
+    gap: 2rem;
+    text-align: center;
+  }
+
+  .footer-brand {
+    flex: none;
+  }
+
+  .footer-links {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
