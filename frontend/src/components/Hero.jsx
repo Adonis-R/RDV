@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-function Hero() {
-  return (
-    <section className="hero">
-      <h1>HERO</h1>
-=======
 import { useState, useRef, useEffect } from 'react';
 import './Hero.css';
 
@@ -131,7 +125,6 @@ function Hero() {
           <span className="hero-tag">Dermatologue</span>
         </div>
       </div>
->>>>>>> e6e703c1a2d3cdeb12fa1cb90422c2ff2b1057f2
     </section>
   );
 }

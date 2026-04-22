@@ -1,10 +1,4 @@
-<<<<<<< HEAD
-function Footer() {
-  return (
-    <footer className="footer">
-      <h1>FOOTER</h1>
-=======
-import logo from '../assets/logo_rdv_no_text.png';
+import logo from '../assets/logo_text.png';
 import './Footer.css';
 
 function Footer() {
@@ -47,7 +41,6 @@ function Footer() {
       <div className="footer-bottom">
         <p>&copy; {new Date().getFullYear()} MyRDV. Tous droits réservés.</p>
       </div>
->>>>>>> e6e703c1a2d3cdeb12fa1cb90422c2ff2b1057f2
     </footer>
   );
 }
