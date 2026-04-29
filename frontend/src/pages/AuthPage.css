@@ -1,4 +1,4 @@
-.login-page {
+.auth-page {
   flex: 1;
   display: flex;
   align-items: center;
@@ -7,7 +7,17 @@
   padding: 2rem 1rem;
 }
 
-.login-card {
+@keyframes flip-out {
+  from { transform: perspective(800px) rotateY(0deg); opacity: 1; }
+  to   { transform: perspective(800px) rotateY(90deg); opacity: 0; }
+}
+
+@keyframes flip-in {
+  from { transform: perspective(800px) rotateY(-90deg); opacity: 0; }
+  to   { transform: perspective(800px) rotateY(0deg); opacity: 1; }
+}
+
+.auth-card {
   background: var(--white);
   border-radius: 16px;
   box-shadow: 0 4px 24px rgba(12, 35, 64, 0.1);
@@ -16,34 +26,48 @@
   max-width: 420px;
 }
 
-.login-logo {
+.auth-card.flip-out {
+  animation: flip-out 0.25s ease-in forwards;
+}
+
+.auth-card.flip-in {
+  animation: flip-in 0.3s ease-out forwards;
+}
+
+.auth-logo {
   display: flex;
   justify-content: center;
   margin-bottom: 1.5rem;
 }
 
-.login-logo img {
+.auth-logo img {
   height: 48px;
 }
 
-.login-card h1 {
+.auth-card h1 {
   font-size: 1.5rem;
   color: var(--navy);
   text-align: center;
   margin-bottom: 0.25rem;
 }
 
-.login-card p.subtitle {
+.auth-subtitle {
   color: var(--gray-500);
   text-align: center;
   font-size: 0.9rem;
   margin-bottom: 2rem;
 }
 
-.login-form {
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+.name-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
 .form-group {
@@ -91,7 +115,7 @@
   color: var(--teal);
 }
 
-.btn-login {
+.auth-btn {
   padding: 0.75rem;
   background: var(--gradient);
   color: var(--white);
@@ -103,22 +127,54 @@
   transition: opacity 0.2s;
 }
 
-.btn-login:hover {
+.auth-btn:hover {
   opacity: 0.88;
 }
 
-.login-footer {
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-footer {
   text-align: center;
   margin-top: 1.5rem;
   font-size: 0.875rem;
   color: var(--gray-500);
 }
 
-.login-footer a {
+.auth-toggle-btn {
+  background: none;
+  border: none;
   color: var(--blue);
   font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
 }
 
-.login-footer a:hover {
+.auth-toggle-btn:hover {
   color: var(--teal);
+}
+
+.auth-error {
+  color: #e53e3e;
+  font-size: 0.85rem;
+}
+
+.auth-success {
+  color: #0f766e;
+  font-size: 0.85rem;
+}
+
+.auth-notice {
+  background: #e0f2fe;
+  color: #075985;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
 }
