@@ -4,7 +4,9 @@ import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "./lib/prisma.js";
+import authenticate from "./middleware/authenticate.js";
 
+// Valeurs autorisées pour le type d'entreprise (doit correspondre exactement au frontend)
 const COMPANY_TYPES = [
   "AUTO_ENTREPRENEUR",
   "ARTISAN",
@@ -13,10 +15,11 @@ const COMPANY_TYPES = [
   "SOCIETE",
   "ASSOCIATION",
 ];
-import authenticate from "./middleware/authenticate.js";
 
+// Charge les variables d'environnement depuis le fichier .env
 dotenv.config();
 
+// Vérifie que la clé secrète JWT est bien définie, sinon le serveur refuse de démarrer
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET is missing from environment.");
 }
@@ -24,17 +27,22 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+// ── Middlewares globaux ──
+app.use(cors());           // Autorise le frontend (autre port) à faire des requêtes
+app.use(express.json());   // Parse automatiquement le JSON reçu dans req.body
 
+// ── Route de santé : vérifie que le serveur tourne ──
 app.get("/", (req, res) => {
   res.json({ message: "API running" });
 });
 
+// ── Route : Inscription ──
+// Crée un nouveau compte utilisateur avec mot de passe chiffré
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { firstName, lastName, email, phone, password } = req.body;
 
+    // Validation : tous les champs sont requis
     if (!firstName || !lastName || !email || !phone || !password) {
       return res.status(400).json({ message: "Tous les champs sont requis." });
     }
@@ -42,6 +50,7 @@ app.post("/api/auth/register", async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPhone = phone.trim();
 
+    // Vérifie qu'aucun compte n'existe déjà avec le même email ou téléphone
     const existingUser = await prisma.user.findFirst({
       where: { OR: [{ email: normalizedEmail }, { phone: normalizedPhone }] },
     });
@@ -51,8 +60,10 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(409).json({ message: `Un compte existe deja avec cet ${conflict}.` });
     }
 
+    // Chiffre le mot de passe avant de le sauvegarder (10 = niveau de sécurité)
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Crée l'utilisateur en base de données
     const user = await prisma.user.create({
       data: {
         firstName: firstName.trim(),
@@ -61,6 +72,7 @@ app.post("/api/auth/register", async (req, res) => {
         phone: normalizedPhone,
         password: hashedPassword,
       },
+      // select : ne renvoie que ces champs au frontend (jamais le mot de passe)
       select: {
         id: true,
         firstName: true,
@@ -82,6 +94,8 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
+// ── Route : Connexion ──
+// Vérifie les identifiants et renvoie un token JWT valable 7 jours
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -92,19 +106,23 @@ app.post("/api/auth/login", async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Cherche l'utilisateur par email
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
 
+    // Message volontairement vague pour ne pas indiquer si l'email existe ou non (sécurité)
     if (!user) {
       return res.status(401).json({ message: "Identifiants ou mot de passe incorrects." });
     }
 
+    // Compare le mot de passe tapé avec le hash stocké en base
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Identifiants ou mot de passe incorrects." });
     }
 
+    // Crée le token JWT avec l'ID utilisateur et l'ID entreprise (null si pas encore créée)
     const token = jwt.sign(
       { id: user.id, companyId: user.companyId ?? null },
       process.env.JWT_SECRET,
@@ -128,19 +146,24 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+// ── Route : Récupérer l'entreprise de l'utilisateur connecté ──
+// "authenticate" vérifie le token avant d'exécuter la route
 app.get("/api/company/me", authenticate, async (req, res) => {
   try {
+    // req.user.id est injecté par le middleware authenticate
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { company: true },
+      include: { company: true }, // Charge aussi les données de l'entreprise liée
     });
-    return res.status(200).json(user?.company ?? null);
+    return res.status(200).json(user?.company ?? null); // Renvoie null si pas d'entreprise
   } catch (error) {
     console.error("GET /api/company/me error:", error);
     return res.status(500).json({ message: "Erreur serveur." });
   }
 });
 
+// ── Route : Créer une entreprise ──
+// Crée l'entreprise et met à jour le rôle de l'utilisateur à OWNER
 app.post("/api/company", authenticate, async (req, res) => {
   try {
     const {
@@ -154,6 +177,7 @@ app.post("/api/company", authenticate, async (req, res) => {
       activityName,
     } = req.body;
 
+    // Nettoyage des données reçues
     const name = (companyName || "").trim();
     const normalizedSiret = (siret || "").replace(/\s+/g, "");
     const normalizedPhone = (phone || "").trim();
@@ -162,6 +186,7 @@ app.post("/api/company", authenticate, async (req, res) => {
     const normalizedCity = (city || "").trim();
     const normalizedActivity = (activityName || "").trim();
 
+    // ── Validations ──
     if (
       !name ||
       !normalizedSiret ||
@@ -199,6 +224,7 @@ app.post("/api/company", authenticate, async (req, res) => {
       return res.status(400).json({ message: "Nom d'activité trop long." });
     }
 
+    // Vérifie que l'utilisateur existe et n'a pas déjà une entreprise
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) {
       return res.status(404).json({ message: "Utilisateur introuvable." });
@@ -207,6 +233,7 @@ app.post("/api/company", authenticate, async (req, res) => {
       return res.status(409).json({ message: "Vous avez déjà une entreprise." });
     }
 
+    // Vérifie qu'aucune autre entreprise n'utilise déjà ce SIRET ou ce téléphone
     const conflict = await prisma.company.findFirst({
       where: { OR: [{ siret: normalizedSiret }, { phone: normalizedPhone }] },
     });
@@ -215,10 +242,11 @@ app.post("/api/company", authenticate, async (req, res) => {
       return res.status(409).json({ message: `Ce ${field} est déjà utilisé.` });
     }
 
+    // Crée l'entreprise ET met à jour l'utilisateur en une seule opération (transaction implicite)
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
-        companyRole: "OWNER",
+        companyRole: "OWNER", // L'utilisateur qui crée l'entreprise en devient automatiquement OWNER
         company: {
           create: {
             name,
@@ -235,6 +263,7 @@ app.post("/api/company", authenticate, async (req, res) => {
       include: { company: true },
     });
 
+    // Génère un nouveau token qui inclut maintenant le companyId
     const token = jwt.sign(
       { id: updatedUser.id, companyId: updatedUser.companyId },
       process.env.JWT_SECRET,
@@ -259,6 +288,7 @@ app.post("/api/company", authenticate, async (req, res) => {
   }
 });
 
+// Démarre le serveur et écoute les requêtes sur le port défini
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });

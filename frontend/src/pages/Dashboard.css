@@ -1,0 +1,134 @@
+.dashboard-main {
+  flex: 1;
+  background: var(--light-bg);
+  padding: 2rem 1rem;
+}
+
+.dashboard-loading {
+  text-align: center;
+  color: var(--gray-500);
+  margin-top: 4rem;
+}
+
+.dashboard-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── En-tête ── */
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.dashboard-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 0.4rem;
+}
+
+.dashboard-badge {
+  display: inline-block;
+  background: var(--gradient);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Bouton de déconnexion dans l'en-tête du dashboard */
+.dashboard-logout-btn {
+  background: transparent;
+  color: var(--gray-700);
+  border: 1.5px solid var(--gray-300);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dashboard-logout-btn:hover {
+  background: var(--navy);
+  color: var(--white);
+  border-color: var(--navy);
+}
+
+/* ── Grille de cartes ── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-card {
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(12, 35, 64, 0.07);
+  padding: 1.5rem;
+}
+
+.dashboard-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--light-bg);
+}
+
+/* ── Liste d'infos label / valeur ── */
+.dashboard-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.dashboard-info-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.info-label {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: 0.9rem;
+  color: var(--gray-700);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ── Cartes "à venir" ── */
+.dashboard-card-coming {
+  opacity: 0.6;
+  border: 2px dashed var(--gray-300);
+  box-shadow: none;
+}
+
+.dashboard-coming-text {
+  font-size: 0.85rem;
+  color: var(--gray-500);
+  font-style: italic;
+  text-align: center;
+  margin-top: 1rem;
+}

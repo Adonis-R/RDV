@@ -6,16 +6,20 @@ import logo from "../assets/logo.png";
 import "./AuthPage.css";
 
 function AuthPage() {
+  // Récupère le message de redirection passé via navigate (ex: "Vous devez être connecté")
   const location = useLocation();
   const notice = location.state?.notice;
-  const [isLogin, setIsLogin] = useState(true);
-  const [animClass, setAnimClass] = useState("");
 
+  const [isLogin, setIsLogin] = useState(true);       // true = formulaire connexion, false = inscription
+  const [animClass, setAnimClass] = useState("");      // Classe CSS pour l'animation de bascule entre les deux formulaires
+
+  // ── États du formulaire de connexion ──
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [loginIsSubmitting, setLoginIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState("");                   // Message d'erreur affiché sous le formulaire
+  const [loginIsSubmitting, setLoginIsSubmitting] = useState(false);  // Désactive le bouton pendant la requête
 
+  // ── États du formulaire d'inscription ──
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -24,24 +28,27 @@ function AuthPage() {
     password: "",
     confirmPassword: "",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");        // Message d'erreur inscription
+  const [success, setSuccess] = useState("");    // Message de succès après inscription
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // URL de base de l'API (définie dans .env avec VITE_API_URL, sinon localhost par défaut)
   const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+  // Anime la bascule entre connexion et inscription (flip-out → swap → flip-in)
   function flip(toLogin) {
-    if (animClass) return;
+    if (animClass) return; // Empêche de déclencher l'animation si elle est déjà en cours
     setAnimClass("flip-out");
     setTimeout(() => {
       setIsLogin(toLogin);
       setError("");
       setSuccess("");
       setAnimClass("flip-in");
-      setTimeout(() => setAnimClass(""), 300);
+      setTimeout(() => setAnimClass(""), 300); // Nettoie la classe une fois l'animation terminée
     }, 250);
   }
 
+  // Envoie les identifiants au backend, sauvegarde le token et redirige vers l'accueil
   async function handleLoginSubmit(e) {
     e.preventDefault();
     setLoginError("");
@@ -54,9 +61,10 @@ function AuthPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Connexion impossible.");
+      // Sauvegarde le token JWT et les infos utilisateur pour les requêtes suivantes
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      window.location.href = "/";
+      window.location.href = "/"; // Rechargement complet pour réinitialiser l'état global
     } catch (err) {
       setLoginError(err.message);
     } finally {
@@ -64,12 +72,15 @@ function AuthPage() {
     }
   }
 
+  // Met à jour le champ correspondant dans le formulaire d'inscription via l'attribut name de l'input
   function handleRegisterChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
+  // Valide, envoie le formulaire d'inscription et bascule vers la connexion en cas de succès
   async function handleRegisterSubmit(e) {
     e.preventDefault();
+    // Validation côté client avant d'envoyer au serveur
     if (form.password !== form.confirmPassword) {
       setError("Les mots de passe ne correspondent pas.");
       return;
@@ -97,6 +108,7 @@ function AuthPage() {
       if (!res.ok) throw new Error(data.message || "Impossible de créer le compte.");
       setSuccess("Compte créé avec succès. Redirection...");
       setForm({ firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "" });
+      // Redirige automatiquement vers la connexion après 1.2 secondes
       setTimeout(() => flip(true), 1200);
     } catch (err) {
       setError(err.message);
@@ -109,13 +121,18 @@ function AuthPage() {
     <>
       <Header />
       <main className="auth-page">
+        {/* La classe animClass (flip-out / flip-in) déclenche l'animation CSS de bascule */}
         <div className={`auth-card ${animClass}`}>
+
+          {/* ── Logo ── */}
           <div className="auth-logo">
             <img src={logo} alt="MyRDV" />
           </div>
 
+          {/* Message de redirection (ex: "Vous devez être connecté...") */}
           {notice && <p className="auth-notice">{notice}</p>}
 
+          {/* ── Formulaire de connexion ── */}
           {isLogin ? (
             <>
               <h1>Connexion</h1>
@@ -161,38 +178,41 @@ function AuthPage() {
               </p>
             </>
           ) : (
+            /* ── Formulaire d'inscription ── */
             <>
               <h1>Créer un compte</h1>
               <p className="auth-subtitle">Rejoignez RD'vous gratuitement</p>
               <form className="auth-form" onSubmit={handleRegisterSubmit}>
-                
-                  <div className="form-group">
-                    <label htmlFor="firstName">Prénom</label>
-                    <input
-                      id="firstName"
-                      name="firstName"
-                      type="text"
-                      placeholder="Prénom"
-                      value={form.firstName}
-                      onChange={handleRegisterChange}
-                      required
-                      autoComplete="given-name"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="lastName">Nom</label>
-                    <input
-                      id="lastName"
-                      name="lastName"
-                      type="text"
-                      placeholder="Nom"
-                      value={form.lastName}
-                      onChange={handleRegisterChange}
-                      required
-                      autoComplete="family-name"
-                    />
-                  </div>
-                
+
+                {/* Prénom et Nom */}
+                <div className="form-group">
+                  <label htmlFor="firstName">Prénom</label>
+                  <input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    placeholder="Prénom"
+                    value={form.firstName}
+                    onChange={handleRegisterChange}
+                    required
+                    autoComplete="given-name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="lastName">Nom</label>
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    placeholder="Nom"
+                    value={form.lastName}
+                    onChange={handleRegisterChange}
+                    required
+                    autoComplete="family-name"
+                  />
+                </div>
+
+                {/* Email et Téléphone */}
                 <div className="form-group">
                   <label htmlFor="reg-email">Adresse e-mail</label>
                   <input
@@ -219,6 +239,8 @@ function AuthPage() {
                     autoComplete="tel"
                   />
                 </div>
+
+                {/* Mot de passe et confirmation */}
                 <div className="form-group">
                   <label htmlFor="reg-password">Mot de passe</label>
                   <input
@@ -245,8 +267,11 @@ function AuthPage() {
                     autoComplete="new-password"
                   />
                 </div>
+
+                {/* Messages d'erreur et de succès */}
                 {error && <p className="auth-error">{error}</p>}
                 {success && <p className="auth-success">{success}</p>}
+
                 <button type="submit" className="auth-btn" disabled={isSubmitting}>
                   {isSubmitting ? "Création..." : "S'inscrire"}
                 </button>
