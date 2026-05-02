@@ -51,19 +51,20 @@ function CreateCompany() {
 
   // Vérification au chargement : redirige si non connecté ou si l'entreprise existe déjà
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/auth", {
-        state: { notice: "Vous devez être connecté avant de créer un compte entreprise." },
-      });
-      return;
-    }
-    // Vérifie si l'utilisateur a déjà une entreprise pour éviter les doublons
     fetch(`${apiBaseUrl}/api/company/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (r.status === 401) {
+          navigate("/auth", {
+            state: { notice: "Vous devez être connecté avant de créer un compte entreprise." },
+          });
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
       .then((data) => {
+        if (data === null) return; // déjà redirigé vers /auth
         if (data) {
           navigate("/"); // Entreprise déjà existante → retour à l'accueil
         } else {
@@ -129,13 +130,10 @@ function CreateCompany() {
     setError("");
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${apiBaseUrl}/api/company`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           companyName: form.companyName.trim(),
           siret: form.siret.replace(/\s+/g, ""),
@@ -149,8 +147,7 @@ function CreateCompany() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Impossible de créer l'entreprise.");
-      // Le backend renvoie un nouveau token qui inclut l'ID de l'entreprise
-      localStorage.setItem("token", data.token);
+      // Le nouveau token (contenant le companyId) est dans un cookie httpOnly. On garde juste les infos d'affichage.
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.removeItem(DRAFT_KEY); // Supprime le brouillon une fois la création réussie
       navigate("/");

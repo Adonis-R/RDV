@@ -56,13 +56,13 @@ function AuthPage() {
     try {
       const res = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: "POST",
+        credentials: "include", // envoie/reçoit le cookie httpOnly contenant le token
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Connexion impossible.");
-      // Sauvegarde le token JWT et les infos utilisateur pour les requêtes suivantes
-      localStorage.setItem("token", data.token);
+      // Le token est dans un cookie httpOnly, invisible au JS. On garde juste les infos d'affichage.
       localStorage.setItem("user", JSON.stringify(data.user));
       window.location.href = "/"; // Rechargement complet pour réinitialiser l'état global
     } catch (err) {
@@ -181,7 +181,7 @@ function AuthPage() {
             /* ── Formulaire d'inscription ── */
             <>
               <h1>Créer un compte</h1>
-              <p className="auth-subtitle">Rejoignez RD'vous gratuitement</p>
+              <p className="auth-subtitle">Rejoignez RDV gratuitement</p>
               <form className="auth-form" onSubmit={handleRegisterSubmit}>
 
                 {/* Prénom et Nom */}

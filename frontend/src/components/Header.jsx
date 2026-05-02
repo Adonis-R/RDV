@@ -5,8 +5,8 @@ import './Header.css';
 function Header() {
   const navigate = useNavigate();
 
-  // Vérifie si un token existe en localStorage pour savoir si l'utilisateur est connecté
-  const isLoggedIn = Boolean(localStorage.getItem('token'));
+  // Le token est dans un cookie httpOnly (invisible au JS). On se base sur la présence des infos user.
+  const isLoggedIn = Boolean(localStorage.getItem('user'));
 
   // Lit l'utilisateur depuis localStorage pour savoir s'il a une entreprise
   function getUser() {
@@ -33,14 +33,9 @@ function Header() {
     navigate('/create-company');
   }
 
-  // Redirige vers le dashboard correspondant : pro si entreprise, client sinon
+  // Toujours vers le dashboard unifié — la bascule perso/pro se fait via les onglets
   function handleMonCompte() {
-    const user = getUser();
-    if (user.companyId) {
-      navigate('/dashboard');
-    } else {
-      navigate('/dashboard-client');
-    }
+    navigate('/dashboard');
   }
 
   return (

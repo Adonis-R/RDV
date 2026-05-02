@@ -5,6 +5,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "./lib/prisma.js";
 import authenticate from "./middleware/authenticate.js";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+
 
 // Valeurs autorisées pour le type d'entreprise (doit correspondre exactement au frontend)
 const COMPANY_TYPES = [
@@ -28,7 +32,13 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // ── Middlewares globaux ──
-app.use(cors());           // Autorise le frontend (autre port) à faire des requêtes
+// CORS : autorise les requêtes du frontend (origin défini dans .env)
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGIN,
+  credentials: true,    // autorise l'envoi de cookies cross-origin
+}));
+app.use(helmet());    // Sécurise les headers HTTP
+app.use(cookieParser()); // Parse les cookies (pour jwt dans les cookies plutot que dans le localStorage)
 app.use(express.json());   // Parse automatiquement le JSON reçu dans req.body
 
 // ── Route de santé : vérifie que le serveur tourne ──
@@ -47,6 +57,16 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(400).json({ message: "Tous les champs sont requis." });
     }
 
+    if (
+      password.length < 8 ||
+      !/[A-Z]/.test(password) ||
+      !/[^A-Za-z0-9]/.test(password)
+    ) {
+      return res.status(400).json({
+        message: "Le mot de passe doit contenir au moins 8 caractères, une majuscule et un symbole (!, @, #...).",
+      });
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPhone = phone.trim();
 
@@ -60,8 +80,8 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(409).json({ message: `Un compte existe deja avec cet ${conflict}.` });
     }
 
-    // Chiffre le mot de passe avant de le sauvegarder (10 = niveau de sécurité)
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Chiffre le mot de passe avant de le sauvegarder (12 = niveau de sécurité)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Crée l'utilisateur en base de données
     const user = await prisma.user.create({
@@ -95,8 +115,16 @@ app.post("/api/auth/register", async (req, res) => {
 });
 
 // ── Route : Connexion ──
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // fenêtre de 15 minutes
+  max: 10,                   // max 10 tentatives par IP
+  message: { message: "Trop de tentatives. Réessayez dans 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Vérifie les identifiants et renvoie un token JWT valable 7 jours
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -128,9 +156,15 @@ app.post("/api/auth/login", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+    
+    res.cookie("token", token, {
+      httpOnly: true,                          // invisible au JavaScript
+      secure: process.env.NODE_ENV === "production", // HTTPS en prod, HTTP en dev
+      sameSite: "strict",                      // protection CSRF
+      maxAge: 7 * 24 * 60 * 60 * 1000,         // 7 jours en millisecondes
+    });
 
     return res.status(200).json({
-      token,
       user: {
         id: user.id,
         firstName: user.firstName,
@@ -144,6 +178,17 @@ app.post("/api/auth/login", async (req, res) => {
     console.error("Login error:", error);
     return res.status(500).json({ message: "Erreur serveur." });
   }
+});
+
+// ── Route : Déconnexion ──
+// Efface le cookie côté navigateur
+app.post("/api/auth/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+  return res.status(200).json({ message: "Déconnecté." });
 });
 
 // ── Route : Récupérer l'entreprise de l'utilisateur connecté ──
@@ -270,6 +315,13 @@ app.post("/api/company", authenticate, async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     return res.status(201).json({
       company: updatedUser.company,
       user: {
@@ -280,7 +332,6 @@ app.post("/api/company", authenticate, async (req, res) => {
         companyRole: updatedUser.companyRole,
         companyId: updatedUser.companyId,
       },
-      token,
     });
   } catch (error) {
     console.error("POST /api/company error:", error);

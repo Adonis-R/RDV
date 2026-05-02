@@ -6,33 +6,37 @@ import "./Dashboard.css";
 
 function DashboardClient() {
   const navigate = useNavigate();
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [user, setUser] = useState(null);   // Infos utilisateur lues depuis localStorage
 
-  // Au chargement : vérifie la connexion et charge les infos utilisateur
+  // Au chargement : vérifie la présence des infos user (le token est dans un cookie httpOnly)
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    const stored = localStorage.getItem("user");
+    if (!stored) {
       navigate("/auth", {
         state: { notice: "Vous devez être connecté pour accéder à votre espace." },
       });
       return;
     }
     try {
-      const stored = JSON.parse(localStorage.getItem("user") || "{}");
+      const parsed = JSON.parse(stored);
       // Si l'utilisateur a une entreprise, on le redirige vers le dashboard pro
-      if (stored.companyId) {
+      if (parsed.companyId) {
         navigate("/dashboard");
         return;
       }
-      setUser(stored);
+      setUser(parsed);
     } catch {
       navigate("/auth");
     }
   }, [navigate]);
 
-  // Déconnecte l'utilisateur : supprime le token et recharge la page
-  function handleLogout() {
-    localStorage.removeItem("token");
+  // Déconnecte l'utilisateur : le backend efface le cookie, on nettoie le local
+  async function handleLogout() {
+    await fetch(`${apiBaseUrl}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
     localStorage.removeItem("user");
     navigate("/");
     window.location.reload();
